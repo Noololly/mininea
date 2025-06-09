@@ -10,7 +10,7 @@ def init():
     """
     global conn
     conn = db.connect('../database.db')
-    create_tables(conn)
+    create_tables(conn) # moved this subroutine to another file to make code cleaner
 
 
 def fetch_active_assignments():
@@ -77,12 +77,13 @@ def create_tabs(root):
     # Add "New Assignment" button in the top right
     btn_frame = tk.Frame(root)
     btn_frame.place(relx=1.0, x=-10, y=10, anchor='ne')
-    tk.Button(btn_frame, text="New Assignment", command=lambda: add_assignment_popup(root, notebook, tree_active, tree_past)).pack()
+    (tk.Button(btn_frame, text="New Assignment", command=lambda: add_assignment_popup(root, notebook, tree_active, tree_past))
+     .pack(side='right', padx=10))
 
     return notebook, tree_active, tree_past
 
 def refresh_tabs(notebook, tree_active, tree_past):
-    # Clear and repopulate the treeviews
+    # Clear and repopulate the tree views
     for i in tree_active.get_children():
         tree_active.delete(i)
     for row in fetch_active_assignments():
@@ -116,9 +117,15 @@ def add_assignment_popup(root, notebook, tree_active, tree_past):
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO Assignments (title, description, due_date, status_id)
-                VALUES (?, ?, ?, ?)
-            """, (title, description, due_date, int(status_id)))
+                           INSERT INTO Assignments (title, description, due_date)
+                           VALUES (?, ?, ?)
+                           """, (title, description, due_date))
+            assignment_id = cursor.lastrowid
+            cursor.execute("""
+                           INSERT INTO Status (status_id, status)
+                           VALUES (?, ?)
+                           """, (assignment_id, 0))
+
             conn.commit()
             popup.destroy()
             refresh_tabs(notebook, tree_active, tree_past)
