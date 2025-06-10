@@ -20,13 +20,13 @@ def fetch_active_assignments():
 	cursor = conn.cursor()
 	# status_id: 1 = uncompleted, 2 = in progress, 3 = overdue
 	query = """
-            SELECT a.assignment_id, a.title, a.description, a.due_date, s.status
-            FROM Assignments a, Status s
-            WHERE s.status_id = a.assignment_id AND s.status != 1
-              AND NOT EXISTS (SELECT 1
-                              FROM History h
-                              WHERE h.assignment_id = a.assignment_id)
-            ORDER BY a.due_date \
+			SELECT a.assignment_id, a.title, a.description, a.due_date, s.status
+			FROM Assignments a, Status s
+			WHERE s.status_id = a.assignment_id AND s.status = 1
+			  AND NOT EXISTS (SELECT 1
+							  FROM History h
+							  WHERE h.assignment_id = a.assignment_id)
+			ORDER BY a.due_date \
 			"""
 	cursor.execute(query)
 	return cursor.fetchall()
@@ -38,9 +38,9 @@ def fetch_past_assignments():
 	"""
 	cursor = conn.cursor()
 	query = """
-            SELECT title, description, due_date, completed_at
-            FROM History
-            ORDER BY completed_at DESC \
+			SELECT title, description, due_date, completed_at
+			FROM History
+			ORDER BY completed_at DESC \
 			"""
 	cursor.execute(query)
 	return cursor.fetchall()
@@ -82,18 +82,27 @@ def create_tabs(root):
 	for row in fetch_past_assignments():
 		tree_past.insert('', 'end', values=row)
 
+	refresh_btn = ttk.Button(
+		btn_frame,
+		text="Refresh",
+		command=lambda: refresh_tabs(notebook, tree_active, tree_past)
+	)
+	refresh_btn.pack(side='right', padx=10)
+
 	return notebook, tree_active, tree_past
 
 def refresh_tabs(notebook, tree_active, tree_past):
+	# Clear active assignments treeview
 	for i in tree_active.get_children():
 		tree_active.delete(i)
 	for row in fetch_active_assignments():
 		tree_active.insert('', 'end', values=row[1:])
+
+	# Clear past assignments treeview
 	for i in tree_past.get_children():
 		tree_past.delete(i)
 	for row in fetch_past_assignments():
 		tree_past.insert('', 'end', values=row)
-
 
 def add_assignment_popup(root, notebook, tree_active, tree_past):
 	popup = tk.Toplevel(root)
@@ -117,13 +126,13 @@ def add_assignment_popup(root, notebook, tree_active, tree_past):
 		try:
 			cursor = conn.cursor()
 			cursor.execute("""
-                           INSERT INTO Assignments (title, description, due_date)
-                           VALUES (?, ?, ?)
+						   INSERT INTO Assignments (title, description, due_date)
+						   VALUES (?, ?, ?)
 						   """, (title, description, due_date))
 			assignment_id = cursor.lastrowid
 			cursor.execute("""
-                           INSERT INTO Status (status_id, status)
-                           VALUES (?, ?)
+						   INSERT INTO Status (status_id, status)
+						   VALUES (?, ?)
 						   """, (assignment_id, 1)) # makes it uncompleted
 
 			conn.commit()
