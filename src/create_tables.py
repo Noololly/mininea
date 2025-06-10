@@ -30,19 +30,13 @@ def create_tables(conn):
                        KEY,
                        title
                        TEXT
-                       NOT
-                       NULL,
+                       NOT NULL,
                        description
                        TEXT,
                        due_date
-                       DATE,
-                       status_id
-                       INTEGER,
+                       DATE
+                       NOT NULL,
                        created_at
-                       TIMESTAMP
-                       DEFAULT
-                       CURRENT_TIMESTAMP,
-                       updated_at
                        TIMESTAMP
                        DEFAULT
                        CURRENT_TIMESTAMP,
