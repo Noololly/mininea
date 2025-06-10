@@ -74,88 +74,134 @@ def mark_uncomplete(tree_past, tree_active, notebook):
 
 
 def edit_assignment(root, notebook, tree_active, tree_past, is_active=True):
-    tree = tree_active if is_active else tree_past
-    selected = tree.selection()
-    if not selected:
-        messagebox.showwarning("No Selection", "Please select an assignment to edit.")
-        return
-    item = tree.item(selected[0])
-    values = item['values']
+	tree = tree_active if is_active else tree_past
+	selected = tree.selection()
+	if not selected:
+		messagebox.showwarning("No Selection", "Please select an assignment to edit.")
+		return
+	item = tree.item(selected[0])
+	values = item['values']
 
-    title, description, due_date = values[:3]
-    completed_at = values[3] if not is_active else None
+	title, description, due_date = values[:3]
+	completed_at = values[3] if not is_active else None
 
-    popup = tk.Toplevel(root)
-    popup.title("Edit Assignment")
-    popup.geometry("450x250")
-    fields = ['Title', 'Description', 'Due Date (YYYY-MM-DD)']
-    if not is_active:
-        fields.append('Completed At')
-    entries = {}
+	popup = tk.Toplevel(root)
+	popup.title("Edit Assignment")
+	popup.geometry("450x250")
+	fields = ['Title', 'Description', 'Due Date (YYYY-MM-DD)']
+	if not is_active:
+		fields.append('Completed At')
+	entries = {}
 
-    for idx, field in enumerate(fields):
-        tk.Label(popup, text=field).grid(row=idx, column=0, padx=10, pady=5, sticky='w')
-        entry = tk.Entry(popup, width=30)
-        entry.grid(row=idx, column=1, padx=10, pady=5)
-        if field == 'Title':
-            entry.insert(0, title)
-        elif field == 'Description':
-            entry.insert(0, description)
-        elif field == 'Due Date (YYYY-MM-DD)':
-            entry.insert(0, due_date)
-        elif field == 'Completed At' and completed_at is not None:
-            entry.insert(0, completed_at)
-        entries[field] = entry
-    
-    def submit():
-        new_title = entries['Title'].get()
-        new_description = entries['Description'].get()
-        new_due_date = entries['Due Date (YYYY-MM-DD)'].get()
-        if not new_title or not new_due_date:
-            messagebox.showerror("Error", "Title and Due Date are required.")
-            return
-        try:
-            cursor = conn.cursor()
-            if is_active:
-                # Find assignment_id for active assignment
-                cursor.execute("""
-                    SELECT assignment_id FROM Assignments
-                    WHERE title = ? AND description = ? AND due_date = ?
-                """, (title, description, due_date))
-                result = cursor.fetchone()
-                if not result:
-                    messagebox.showerror("Error", "Assignment not found.")
-                    return
-                assignment_id = result[0]
-                cursor.execute("""
-                    UPDATE Assignments
-                    SET title = ?, description = ?, due_date = ?
-                    WHERE assignment_id = ?
-                """, (new_title, new_description, new_due_date, assignment_id))
-            else:
-                # Find assignment_id for past assignment
-                new_completed_at = entries['Completed At'].get()
-                cursor.execute("""
-                    SELECT assignment_id FROM History
-                    WHERE title = ? AND description = ? AND due_date = ? AND completed_at = ?
-                """, (title, description, due_date, completed_at))
-                result = cursor.fetchone()
-                if not result:
-                    messagebox.showerror("Error", "Assignment not found.")
-                    return
-                assignment_id = result[0]
-                cursor.execute("""
-                    UPDATE History
-                    SET title = ?, description = ?, due_date = ?, completed_at = ?
-                    WHERE assignment_id = ?
-                """, (new_title, new_description, new_due_date, new_completed_at, assignment_id))
-            conn.commit()
-            popup.destroy()
-            refresh_tabs(notebook, tree_active, tree_past)
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-    
-    tk.Button(popup, text="Save Changes", command=submit).grid(row=len(fields), column=0, columnspan=2, pady=15)
+	for idx, field in enumerate(fields):
+		tk.Label(popup, text=field).grid(row=idx, column=0, padx=10, pady=5, sticky='w')
+		entry = tk.Entry(popup, width=30)
+		entry.grid(row=idx, column=1, padx=10, pady=5)
+		if field == 'Title':
+			entry.insert(0, title)
+		elif field == 'Description':
+			entry.insert(0, description)
+		elif field == 'Due Date (YYYY-MM-DD)':
+			entry.insert(0, due_date)
+		elif field == 'Completed At' and completed_at is not None:
+			entry.insert(0, completed_at)
+		entries[field] = entry
+	
+	def submit():
+		new_title = entries['Title'].get()
+		new_description = entries['Description'].get()
+		new_due_date = entries['Due Date (YYYY-MM-DD)'].get()
+		if not new_title or not new_due_date:
+			messagebox.showerror("Error", "Title and Due Date are required.")
+			return
+		try:
+			cursor = conn.cursor()
+			if is_active:
+				# Find assignment_id for active assignment
+				cursor.execute("""
+					SELECT assignment_id FROM Assignments
+					WHERE title = ? AND description = ? AND due_date = ?
+				""", (title, description, due_date))
+				result = cursor.fetchone()
+				if not result:
+					messagebox.showerror("Error", "Assignment not found.")
+					return
+				assignment_id = result[0]
+				cursor.execute("""
+					UPDATE Assignments
+					SET title = ?, description = ?, due_date = ?
+					WHERE assignment_id = ?
+				""", (new_title, new_description, new_due_date, assignment_id))
+			else:
+				# Find assignment_id for past assignment
+				new_completed_at = entries['Completed At'].get()
+				cursor.execute("""
+					SELECT assignment_id FROM History
+					WHERE title = ? AND description = ? AND due_date = ? AND completed_at = ?
+				""", (title, description, due_date, completed_at))
+				result = cursor.fetchone()
+				if not result:
+					messagebox.showerror("Error", "Assignment not found.")
+					return
+				assignment_id = result[0]
+				cursor.execute("""
+					UPDATE History
+					SET title = ?, description = ?, due_date = ?, completed_at = ?
+					WHERE assignment_id = ?
+				""", (new_title, new_description, new_due_date, new_completed_at, assignment_id))
+			conn.commit()
+			popup.destroy()
+			refresh_tabs(notebook, tree_active, tree_past)
+		except Exception as e:
+			messagebox.showerror("Error", str(e))
+	
+	tk.Button(popup, text="Save Changes", command=submit).grid(row=len(fields), column=0, columnspan=2, pady=15)
+
+
+def delete_assignment(notebook, is_active, tree, tree_active, tree_past):
+	selected = tree.selection()
+	if not selected:
+		messagebox.showwarning("No Selection", "Please select an assignment to delete.")
+		return
+	item = tree.item(selected[0])
+	values = item['values']
+
+	confirm = messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this assignment?")
+	if not confirm:
+		return
+	
+	cursor = conn.cursor()
+	try:
+		if is_active:
+			cursor.execute("""
+				SELECT assignment_id FROM Assignments
+				  WHERE title = ? AND description = ? AND due_date = ?
+				""", (values[0], values[1], values[2]))
+			result = cursor.fetchone()
+			if not result:
+				messagebox.showerror("Error", "Assignment not found!")
+				return
+			
+			assignment_id = result[0]
+			cursor.execute("DELETE FROM Assignments WHERE assignment_id = ?", (assignment_id,))
+			cursor.execute("DELETE FROM Status WHERE status_id = ?", (assignment_id,))
+		
+		else:
+			cursor.execute("""
+				  SELECT assignment_id FROM History
+				  WHERE title = ? AND description = ? AND due_date = ?
+				  """, (values[0], values[1], values[2]))
+			result = cursor.fetchone()
+			if not result:
+				messagebox.showerror("Error", "Assignment not found!")
+				return
+			assignment_id = result[0]
+			cursor.execute("DELETE FROM History WHERE assignment_id = ?", (assignment_id,))
+		
+		conn.commit()
+		refresh_tabs(notebook, tree_active, tree_past)
+	except Exception as e:
+		messagebox.showerror("Error", str(e))
 
 
 def fetch_active_assignments():
@@ -217,12 +263,6 @@ def create_tabs(root):
 	for row in fetch_active_assignments():
 		tree_active.insert('', 'end', values=row[1:])
 	
-	edit_active_btn = ttk.Button(
-		tab_active,
-		text="Edit Assignment",
-		command=lambda: edit_assignment(root, notebook, tree_active, tree_past, is_active=True)
-	)
-	edit_active_btn.pack(side='right', pady=10)
 
 	tab_past = ttk.Frame(notebook)
 	notebook.add(tab_past, text='Past Assignments')
@@ -234,8 +274,22 @@ def create_tabs(root):
 	for row in fetch_past_assignments():
 		tree_past.insert('', 'end', values=row)
 
+	bottom_active_frame = ttk.Frame(tab_active)
+	bottom_active_frame.pack(side='bottom', fill='x', pady=5)
+
+	bottom_past_frame = ttk.Frame(tab_past)
+	bottom_past_frame.pack(side='bottom', fill='x', pady=5)
+
+	edit_active_btn = ttk.Button(
+			bottom_active_frame,
+			text="Edit Assignment",
+			command=lambda: edit_assignment(root, notebook, tree_active, tree_past, is_active=True)
+		)
+	edit_active_btn.pack(side='right', pady=10)
+
+
 	edit_past_btn = ttk.Button(
-		tab_past,
+		bottom_past_frame,
 		text="Edit Assignment",
 		command=lambda: edit_assignment(root, notebook, tree_active, tree_past, is_active=False)
 	)
@@ -249,18 +303,32 @@ def create_tabs(root):
 	refresh_btn.pack(side='right', padx=10)
 
 	complete_button = ttk.Button(
-		tab_active,
+		bottom_active_frame,
 		text="Mark as Complete",
 		command=lambda: mark_complete(tree_active, tree_past, notebook)
 	)
 	complete_button.pack(side='right', pady=10)
 
 	mark_uncomplete_button = ttk.Button(
-		tab_past,
+		bottom_past_frame,
 		text="Mark as Uncompleted",
 		command=lambda: mark_uncomplete(tree_past, tree_active, notebook)
 	)
 	mark_uncomplete_button.pack(side='right', pady=10)
+
+	remove_active_button = ttk.Button(
+		bottom_active_frame,
+		text="Remove assignment",
+		command=lambda: delete_assignment(notebook, True, tree_active, tree_active, tree_past)
+	)
+	remove_active_button.pack(side='right', pady=10)
+
+	remove_past_button = ttk.Button(
+		bottom_past_frame,
+		text="Remove Assignment",
+		command=lambda: delete_assignment(notebook, False, tree_past, tree_active, tree_past)
+	)
+	remove_past_button.pack(side='right', pady=10)
 
 	return notebook, tree_active, tree_past
 
